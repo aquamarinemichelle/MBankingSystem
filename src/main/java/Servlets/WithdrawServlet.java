@@ -6,7 +6,7 @@ import java.io.IOException;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 
-public class DepositServlet extends HttpServlet {
+public class WithdrawServlet extends HttpServlet {
     
     private BankAccountDAO accountDAO = new BankAccountDAO();
     
@@ -16,93 +16,90 @@ public class DepositServlet extends HttpServlet {
         
         HttpSession session = request.getSession();
         BankAccount account = (BankAccount) session.getAttribute("account");
-        
-        
+      
         if (account == null) {
             response.sendRedirect("login.jsp");
             return;
         }
-        
-        
+       
         request.setAttribute("accountNumber", account.getAccountNumber());
         request.setAttribute("accountHolder", account.getAccountHolder());
         request.setAttribute("oldBalance", account.getBalance());
         
         try {
-            
+           
             String amountStr = request.getParameter("amount");
             double amount = Double.parseDouble(amountStr);
             
-            System.out.println("Deposit attempt: Account #" + account.getAccountNumber() + 
+            System.out.println("Withdrawal attempt: Account #" + account.getAccountNumber() + 
                              ", Amount: R" + amount);
             
-            
-            request.setAttribute("depositAmount", amount);
-            
-            
+            request.setAttribute("withdrawAmount", amount);
+           
             if (amount <= 0) {
                 request.setAttribute("outcome", "error");
-                request.setAttribute("message", "Amount must be greater than zero!");
-                request.getRequestDispatcher("deposit_outcome.jsp").forward(request, response);
+                request.setAttribute("message", "Withdrawal amount must be greater than zero!");
+                request.getRequestDispatcher("withdraw_outcome.jsp").forward(request, response);
                 return;
             }
             
-            if (amount > 100000) { 
+            if (amount > 50000) { 
                 request.setAttribute("outcome", "error");
-                request.setAttribute("message", "Maximum deposit is R100,000 per transaction!");
-                request.getRequestDispatcher("deposit_outcome.jsp").forward(request, response);
+                request.setAttribute("message", "Maximum withdrawal is R50,000 per transaction!");
+                request.getRequestDispatcher("withdraw_outcome.jsp").forward(request, response);
                 return;
             }
             
-            
+            if (amount > account.getBalance()) {
+                request.setAttribute("outcome", "error");
+                request.setAttribute("message", 
+                    "Insufficient funds! Available: R" + String.format("%,.2f", account.getBalance()));
+                request.getRequestDispatcher("withdraw_outcome.jsp").forward(request, response);
+                return;
+            }
+       
             double oldBalance = account.getBalance();
-            account.deposit(amount);
-            
-            
+            account.withdraw(amount);
+      
             accountDAO.updateBalance(account);
-            
-            
+     
             BankAccount updatedAccount = accountDAO.getAccount(account.getAccountNumber());
             session.setAttribute("account", updatedAccount);
-            
-            
+           
             request.setAttribute("outcome", "success");
-            request.setAttribute("message", "Deposit Successful!");
+            request.setAttribute("message", "Withdrawal Successful!");
             request.setAttribute("newBalance", updatedAccount.getBalance());
             request.setAttribute("transactionId", generateTransactionId());
             request.setAttribute("transactionDate", new java.util.Date());
             
-            System.out.println("Deposit successful: R" + amount + " deposited to account #" + account.getAccountNumber());
+            System.out.println("Withdrawal successful: R" + amount + " withdrawn from account #" + account.getAccountNumber());
             
-            
-            request.getRequestDispatcher("deposit_outcome.jsp").forward(request, response);
+            request.getRequestDispatcher("withdraw_outcome.jsp").forward(request, response);
             
         } catch (NumberFormatException e) {
             request.setAttribute("outcome", "error");
             request.setAttribute("message", "Please enter a valid number!");
-            request.getRequestDispatcher("deposit_outcome.jsp").forward(request, response);
+            request.getRequestDispatcher("withdraw_outcome.jsp").forward(request, response);
         } catch (IllegalArgumentException e) {
             request.setAttribute("outcome", "error");
             request.setAttribute("message", e.getMessage());
-            request.getRequestDispatcher("deposit_outcome.jsp").forward(request, response);
+            request.getRequestDispatcher("withdraw_outcome.jsp").forward(request, response);
         } catch (Exception e) {
             request.setAttribute("outcome", "error");
             request.setAttribute("message", "System error: " + e.getMessage());
-            System.err.println("Error in DepositServlet: " + e.getMessage());
+            System.err.println("Error in WithdrawServlet: " + e.getMessage());
             e.printStackTrace();
-            request.getRequestDispatcher("deposit_outcome.jsp").forward(request, response);
+            request.getRequestDispatcher("withdraw_outcome.jsp").forward(request, response);
         }
     }
     
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
-        
-        response.sendRedirect("deposit.jsp");
+        response.sendRedirect("withdraw.jsp");
     }
-    
-    
+   
     private String generateTransactionId() {
-        return "TXN" + System.currentTimeMillis() + (int)(Math.random() * 1000);
+        return "WDR" + System.currentTimeMillis() + (int)(Math.random() * 1000);
     }
 }

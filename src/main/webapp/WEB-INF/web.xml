@@ -16,6 +16,14 @@
         <servlet-name>DepositServlet</servlet-name>
         <servlet-class>Servlets.DepositServlet</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>WithdrawServlet</servlet-name>
+        <servlet-class>Servlets.WithdrawServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>TransferServlet</servlet-name>
+        <servlet-class>Servlets.TransferServlet</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>RegisterServlet</servlet-name>
         <url-pattern>/RegisterServlet</url-pattern>
@@ -31,6 +39,14 @@
     <servlet-mapping>
         <servlet-name>DepositServlet</servlet-name>
         <url-pattern>/DepositServlet</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>WithdrawServlet</servlet-name>
+        <url-pattern>/WithdrawServlet</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>TransferServlet</servlet-name>
+        <url-pattern>/TransferServlet</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>

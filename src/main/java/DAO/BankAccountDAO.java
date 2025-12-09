@@ -5,49 +5,33 @@ import java.sql.*;
 
 public class BankAccountDAO {
 
-    
     private static final String URL = "jdbc:mysql://localhost:3306/mbankingdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     private static final String USER = "root";
     private static final String PASSWORD = "sheishero@7539";
 
-
+    
     static {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            System.out.println("✅ MySQL Driver 9.x loaded successfully");
+            System.out.println("✅ MySQL Driver loaded");
         } catch (ClassNotFoundException e) {
-            System.err.println("❌ ERROR: MySQL Driver not found!");
-            System.err.println("Make sure mysql-connector-j-9.5.0.jar is in the classpath");
-            System.err.println("Check Maven dependencies or add JAR to project libraries");
+            System.err.println("❌ MySQL Driver not found!");
             e.printStackTrace();
         }
     }
 
     
-    public BankAccountDAO() {
-        System.out.println("BankAccountDAO initialized with URL: " + URL);
-        testConnection(); 
-    }
-
-    
     public int generateAccountNumber() {
-        int accountNumber = 100000 + (int)(Math.random() * 900000); 
-        
+        int accountNumber = 100000 + (int)(Math.random() * 900000);
         while (getAccount(accountNumber) != null) {
             accountNumber = 100000 + (int)(Math.random() * 900000);
         }
         return accountNumber;
-    } 
+    }
 
     
     public void createAccount(BankAccount account) {
         String sql = "INSERT INTO accounts (account_number, account_holder, balance, email, password) VALUES (?, ?, ?, ?, ?)";
-        
-        System.out.println("\n=== Creating New Account ===");
-        System.out.println("Account #: " + account.getAccountNumber());
-        System.out.println("Holder: " + account.getAccountHolder());
-        System.out.println("Email: " + account.getEmail());
-        System.out.println("Initial Balance: $" + account.getBalance());
         
         try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -58,31 +42,18 @@ public class BankAccountDAO {
             stmt.setString(4, account.getEmail());
             stmt.setString(5, account.getPassword());
             
-            int rowsAffected = stmt.executeUpdate();
-            System.out.println("✅ SUCCESS: Account created. Rows affected: " + rowsAffected);
+            stmt.executeUpdate();
+            System.out.println("Account created: #" + account.getAccountNumber());
             
         } catch (SQLException e) {
-            System.err.println("❌ ERROR creating account: " + e.getMessage());
-            System.err.println("SQL State: " + e.getSQLState());
-            System.err.println("Error Code: " + e.getErrorCode());
-            
-            
-            if (e.getMessage().contains("Duplicate entry")) {
-                System.err.println("Duplicate email or account number!");
-            } else if (e.getMessage().contains("Access denied")) {
-                System.err.println("Database access denied. Check username/password.");
-            } else if (e.getMessage().contains("Unknown database")) {
-                System.err.println("Database 'mbankingdb' doesn't exist!");
-                System.err.println("Run: CREATE DATABASE mbankingdb;");
-            }
-            
-            e.printStackTrace();
+            handleSQLException("createAccount", e);
         }
     }
 
     
     public BankAccount getAccount(int accountNumber) {
         String sql = "SELECT * FROM accounts WHERE account_number = ?";
+        
         try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -90,22 +61,16 @@ public class BankAccountDAO {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                BankAccount account = new BankAccount(
+                return new BankAccount(
                     rs.getInt("account_number"),
                     rs.getString("account_holder"),
                     rs.getDouble("balance"),
                     rs.getString("email"),
                     rs.getString("password")
                 );
-                System.out.println("Found account #" + accountNumber + ": " + account.getAccountHolder());
-                return account;
-            } else {
-                System.out.println("No account found with #" + accountNumber);
             }
-
         } catch (SQLException e) {
-            System.err.println("Error getting account: " + e.getMessage());
-            e.printStackTrace();
+            handleSQLException("getAccount", e);
         }
         return null;
     }
@@ -113,6 +78,7 @@ public class BankAccountDAO {
     
     public BankAccount getAccountByEmailAndPassword(String email, String password) {
         String sql = "SELECT * FROM accounts WHERE email = ? AND password = ?";
+        
         try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -121,22 +87,16 @@ public class BankAccountDAO {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                BankAccount account = new BankAccount(
+                return new BankAccount(
                     rs.getInt("account_number"),
                     rs.getString("account_holder"),
                     rs.getDouble("balance"),
                     rs.getString("email"),
                     rs.getString("password")
                 );
-                System.out.println("Login successful for: " + email);
-                return account;
-            } else {
-                System.out.println("Login failed for: " + email);
             }
-
         } catch (SQLException e) {
-            System.err.println("Error during login: " + e.getMessage());
-            e.printStackTrace();
+            handleSQLException("getAccountByEmailAndPassword", e);
         }
         return null;
     }
@@ -144,6 +104,7 @@ public class BankAccountDAO {
     
     public boolean emailExists(String email) {
         String sql = "SELECT COUNT(*) FROM accounts WHERE email = ?";
+        
         try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -151,121 +112,178 @@ public class BankAccountDAO {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                boolean exists = rs.getInt(1) > 0;
-                System.out.println("Email '" + email + "' exists: " + exists);
-                return exists;
+                return rs.getInt(1) > 0;
             }
-
         } catch (SQLException e) {
-            System.err.println("Error checking email: " + e.getMessage());
-            e.printStackTrace();
+            handleSQLException("emailExists", e);
         }
         return false;
     }
 
-    
+   
     public void updateBalance(BankAccount account) {
         String sql = "UPDATE accounts SET balance = ? WHERE account_number = ?";
+        
         try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setDouble(1, account.getBalance());
             stmt.setInt(2, account.getAccountNumber());
+            stmt.executeUpdate();
             
-            int rowsAffected = stmt.executeUpdate();
-            if (rowsAffected > 0) {
-                System.out.println("✅ Balance updated for account #" + account.getAccountNumber() + 
-                                 " to $" + account.getBalance());
-            } else {
-                System.err.println("❌ No account found with #" + account.getAccountNumber());
-            }
-
         } catch (SQLException e) {
-            System.err.println("Error updating balance: " + e.getMessage());
-            e.printStackTrace();
+            handleSQLException("updateBalance", e);
         }
     }
 
     
-    public boolean testConnection() {
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
-            System.out.println("\n=== Database Connection Test ===");
-            System.out.println("✅ Connection successful!");
-            System.out.println("Database: " + conn.getCatalog());
+    public boolean transfer(int fromAccountNumber, int toAccountNumber, double amount) {
+        Connection conn = null;
+        
+        try {
+            conn = DriverManager.getConnection(URL, USER, PASSWORD);
+            conn.setAutoCommit(false);
             
             
-            DatabaseMetaData meta = conn.getMetaData();
-            System.out.println("MySQL Version: " + meta.getDatabaseProductVersion());
-            System.out.println("Driver: " + meta.getDriverName() + " " + meta.getDriverVersion());
+            BankAccount fromAccount = getAccountInTransaction(conn, fromAccountNumber);
+            BankAccount toAccount = getAccountInTransaction(conn, toAccountNumber);
             
-            
-            ResultSet tables = meta.getTables(null, null, "accounts", null);
-            if (tables.next()) {
-                System.out.println("✅ Table 'accounts' exists");
-                
-                
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM accounts");
-                if (rs.next()) {
-                    System.out.println("Total accounts in database: " + rs.getInt("count"));
-                }
-            } else {
-                System.err.println("❌ Table 'accounts' doesn't exist!");
-                System.err.println("Run: CREATE TABLE accounts (...)");
+            if (fromAccount == null || toAccount == null) {
+                throw new SQLException("One or both accounts not found");
             }
             
-            System.out.println("=============================\n");
+            
+            validateTransfer(fromAccount, amount);
+            
+            
+            fromAccount.withdraw(amount);
+            toAccount.deposit(amount);
+            
+            
+            updateBalanceInTransaction(conn, fromAccount);
+            updateBalanceInTransaction(conn, toAccount);
+            
+            conn.commit();
+            System.out.println("Transfer successful: R" + amount + 
+                             " from #" + fromAccountNumber + " to #" + toAccountNumber);
             return true;
             
-        } catch (SQLException e) {
-            System.err.println("\n=== Database Connection Test ===");
-            System.err.println("❌ Connection failed!");
-            System.err.println("Error: " + e.getMessage());
-            System.err.println("SQL State: " + e.getSQLState());
-            System.err.println("Error Code: " + e.getErrorCode());
-            System.err.println("URL: " + URL);
-            System.err.println("User: " + USER);
-            
-            
-            if (e.getMessage().contains("Unknown database")) {
-                System.err.println("\n💡 SOLUTION: Database doesn't exist. Run:");
-                System.err.println("  CREATE DATABASE mbankingdb;");
-            } else if (e.getMessage().contains("Access denied")) {
-                System.err.println("\n💡 SOLUTION: Check MySQL username/password");
-            } else if (e.getMessage().contains("Communications link failure")) {
-                System.err.println("\n💡 SOLUTION: MySQL service might not be running");
-                System.err.println("  Start MySQL service or check port 3306");
-            }
-            
-            System.err.println("=============================\n");
+        } catch (Exception e) {
+            rollbackTransaction(conn);
+            System.err.println("Transfer failed: " + e.getMessage());
             return false;
+        } finally {
+            closeConnection(conn);
         }
     }
-    
+
     
     public void getAllAccounts() {
         String sql = "SELECT * FROM accounts ORDER BY account_number";
+        
         try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             
             System.out.println("\n=== All Accounts in Database ===");
             int count = 0;
+            
             while (rs.next()) {
                 count++;
                 System.out.println(count + ". #" + rs.getInt("account_number") + 
                                  " | " + rs.getString("account_holder") + 
                                  " | " + rs.getString("email") + 
-                                 " | Balance: $" + rs.getDouble("balance"));
+                                 " | Balance: R" + rs.getDouble("balance"));
             }
+            
             if (count == 0) {
                 System.out.println("No accounts in database");
             }
+            
             System.out.println("===============================\n");
             
         } catch (SQLException e) {
-            System.err.println("Error getting all accounts: " + e.getMessage());
-            e.printStackTrace();
+            handleSQLException("getAllAccounts", e);
         }
+    }
+
+    
+    private BankAccount getAccountInTransaction(Connection conn, int accountNumber) throws SQLException {
+        String sql = "SELECT * FROM accounts WHERE account_number = ? FOR UPDATE";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, accountNumber);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return new BankAccount(
+                    rs.getInt("account_number"),
+                    rs.getString("account_holder"),
+                    rs.getDouble("balance"),
+                    rs.getString("email"),
+                    rs.getString("password")
+                );
+            }
+        }
+        return null;
+    }
+
+    
+    private void validateTransfer(BankAccount fromAccount, double amount) throws SQLException {
+        if (amount <= 0) {
+            throw new SQLException("Transfer amount must be positive");
+        }
+        if (fromAccount.getBalance() < amount) {
+            throw new SQLException("Insufficient funds");
+        }
+    }
+
+    private void updateBalanceInTransaction(Connection conn, BankAccount account) throws SQLException {
+        String sql = "UPDATE accounts SET balance = ? WHERE account_number = ?";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setDouble(1, account.getBalance());
+            stmt.setInt(2, account.getAccountNumber());
+            stmt.executeUpdate();
+        }
+    }
+
+    private void rollbackTransaction(Connection conn) {
+        if (conn != null) {
+            try {
+                conn.rollback();
+            } catch (SQLException e) {
+                System.err.println("Error rolling back transaction: " + e.getMessage());
+            }
+        }
+    }
+
+    
+    private void closeConnection(Connection conn) {
+        if (conn != null) {
+            try {
+                conn.close();
+            } catch (SQLException e) {
+                System.err.println("Error closing connection: " + e.getMessage());
+            }
+        }
+    }
+
+    
+    public boolean testConnection() {
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
+            System.out.println("✅ Database connection successful");
+            return true;
+        } catch (SQLException e) {
+            System.err.println("❌ Database connection failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    
+    private void handleSQLException(String method, SQLException e) {
+        System.err.println("SQL Error in " + method + ": " + e.getMessage());
+        System.err.println("SQL State: " + e.getSQLState() + ", Error Code: " + e.getErrorCode());
+        e.printStackTrace();
     }
 }

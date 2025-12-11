@@ -2,9 +2,11 @@ package Servlets;
 
 import DAO.BankAccountDAO;
 import Model.BankAccount;
+import database.DatabaseConfig;
 import java.io.IOException;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
+import java.sql.*;
 
 public class TransferServlet extends HttpServlet {
     
@@ -109,12 +111,37 @@ public class TransferServlet extends HttpServlet {
             session.setAttribute("account", updatedAccount);
             
             
+            String transactionId = generateTransactionId();
+            
+            
+            recordTransaction(
+                fromAccount.getAccountNumber(),
+                "TRANSFER_DEBIT",
+                -amount,
+                String.valueOf(toAccountNumber),
+                description != null ? description : "Transfer to account #" + toAccountNumber,
+                fee,
+                transactionId
+            );
+            
+            
+            recordTransaction(
+                toAccountNumber,
+                "TRANSFER_CREDIT",
+                amount,
+                String.valueOf(fromAccount.getAccountNumber()),
+                description != null ? description : "Transfer from account #" + fromAccount.getAccountNumber(),
+                0,
+                transactionId
+            );
+            
+            
             request.setAttribute("outcome", "success");
             request.setAttribute("message", "Transfer Successful!");
             request.setAttribute("newBalance", updatedAccount.getBalance());
             request.setAttribute("fee", fee);
             request.setAttribute("totalDebit", totalDebit);
-            request.setAttribute("transactionId", generateTransactionId());
+            request.setAttribute("transactionId", transactionId);
             request.setAttribute("transactionDate", new java.util.Date());
             
             System.out.println("Transfer successful: R" + amount + " from #" + 
@@ -150,5 +177,47 @@ public class TransferServlet extends HttpServlet {
     
     private String generateTransactionId() {
         return "TRF" + System.currentTimeMillis() + (int)(Math.random() * 1000);
+    }
+    
+    
+    private void recordTransaction(int accountNumber, String type, double amount, 
+                                  String toAccount, String description, 
+                                  double fee, String transactionId) {
+        Connection conn = null;
+        try {
+           
+            conn = DriverManager.getConnection(
+                DatabaseConfig.URL,
+                DatabaseConfig.USER,
+                DatabaseConfig.PASSWORD
+            );
+            
+            String sql = "INSERT INTO transactions (account_number, transaction_type, amount, " +
+                         "to_account, description, fee, transaction_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, accountNumber);
+            stmt.setString(2, type);
+            stmt.setDouble(3, amount);
+            if (toAccount != null && !toAccount.isEmpty()) {
+                stmt.setString(4, toAccount);
+            } else {
+                stmt.setNull(4, java.sql.Types.VARCHAR);
+            }
+            stmt.setString(5, description != null ? description : "");
+            stmt.setDouble(6, fee);
+            stmt.setString(7, transactionId);
+            
+            stmt.executeUpdate();
+            System.out.println("Transaction recorded: " + transactionId + " for account #" + accountNumber);
+            
+        } catch (SQLException e) {
+            System.err.println("Error recording transaction: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (conn != null) {
+                try { conn.close(); } catch (SQLException e) {}
+            }
+        }
     }
 }

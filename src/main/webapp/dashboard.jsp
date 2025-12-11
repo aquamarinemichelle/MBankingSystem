@@ -202,7 +202,7 @@
             <a href="deposit.jsp" class="action-btn deposit">Deposit Money</a>
             <a href="withdraw.jsp" class="action-btn withdraw">Withdraw Money</a>
             <a href="transfer.jsp" class="action-btn transfer">Transfer Money</a>
-            <a href="statement.jsp" class="action-btn">View Statement</a>
+            <a href="ViewStatementServlet" class="action-btn">View Statement</a>
         </div>
     </div>
 </body>

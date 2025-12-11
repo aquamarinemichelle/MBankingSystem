@@ -2,9 +2,11 @@ package Servlets;
 
 import DAO.BankAccountDAO;
 import Model.BankAccount;
+import database.DatabaseConfig;
 import java.io.IOException;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
+import java.sql.*;
 
 public class DepositServlet extends HttpServlet {
     
@@ -66,10 +68,24 @@ public class DepositServlet extends HttpServlet {
             session.setAttribute("account", updatedAccount);
             
             
+            String transactionId = generateTransactionId();
+            
+            
+            recordTransaction(
+                account.getAccountNumber(),
+                "DEPOSIT",
+                amount,
+                null,
+                "Deposit",
+                0,
+                transactionId
+            );
+            
+            
             request.setAttribute("outcome", "success");
             request.setAttribute("message", "Deposit Successful!");
             request.setAttribute("newBalance", updatedAccount.getBalance());
-            request.setAttribute("transactionId", generateTransactionId());
+            request.setAttribute("transactionId", transactionId);
             request.setAttribute("transactionDate", new java.util.Date());
             
             System.out.println("Deposit successful: R" + amount + " deposited to account #" + account.getAccountNumber());
@@ -104,5 +120,47 @@ public class DepositServlet extends HttpServlet {
     
     private String generateTransactionId() {
         return "TXN" + System.currentTimeMillis() + (int)(Math.random() * 1000);
+    }
+    
+  
+    private void recordTransaction(int accountNumber, String type, double amount, 
+                                  String toAccount, String description, 
+                                  double fee, String transactionId) {
+        Connection conn = null;
+        try {
+           
+            conn = DriverManager.getConnection(
+                DatabaseConfig.URL,
+                DatabaseConfig.USER,
+                DatabaseConfig.PASSWORD
+            );
+        
+            String sql = "INSERT INTO transactions (account_number, transaction_type, amount, " +
+                         "to_account, description, fee, transaction_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, accountNumber);
+            stmt.setString(2, type);
+            stmt.setDouble(3, amount);
+            if (toAccount != null && !toAccount.isEmpty()) {
+                stmt.setString(4, toAccount);
+            } else {
+                stmt.setNull(4, java.sql.Types.VARCHAR);
+            }
+            stmt.setString(5, description != null ? description : "");
+            stmt.setDouble(6, fee);
+            stmt.setString(7, transactionId);
+            
+            stmt.executeUpdate();
+            System.out.println("Transaction recorded: " + transactionId + " for account #" + accountNumber);
+            
+        } catch (SQLException e) {
+            System.err.println("Error recording transaction: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (conn != null) {
+                try { conn.close(); } catch (SQLException e) {}
+            }
+        }
     }
 }

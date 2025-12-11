@@ -24,6 +24,10 @@
         <servlet-name>TransferServlet</servlet-name>
         <servlet-class>Servlets.TransferServlet</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>ViewStatementServlet</servlet-name>
+        <servlet-class>Servlets.ViewStatementServlet</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>RegisterServlet</servlet-name>
         <url-pattern>/RegisterServlet</url-pattern>
@@ -47,6 +51,10 @@
     <servlet-mapping>
         <servlet-name>TransferServlet</servlet-name>
         <url-pattern>/TransferServlet</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ViewStatementServlet</servlet-name>
+        <url-pattern>/ViewStatementServlet</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>

@@ -1,13 +1,14 @@
 package DAO;
 
 import Model.BankAccount;
+import database.DatabaseConfig;
 import java.sql.*;
 
 public class BankAccountDAO {
 
-    private static final String URL = "jdbc:mysql://localhost:3306/mbankingdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-    private static final String USER = "root";
-    private static final String PASSWORD = "sheishero@7539";
+   private static final String URL = DatabaseConfig.URL;
+    private static final String USER = DatabaseConfig.USER;
+    private static final String PASSWORD = DatabaseConfig.PASSWORD;
 
     
     static {

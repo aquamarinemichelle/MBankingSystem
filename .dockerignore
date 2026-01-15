@@ -1,23 +1,18 @@
-# Build outputs
+.git
+.gitignore
 target/
 *.jar
 *.war
 *.ear
-
-# IDE files
+*.zip
+*.tar.gz
+*.class
+*.log
+.settings/
+.project
+.classpath
 .idea/
 *.iml
-.classpath
-.project
-.settings/
 .vscode/
-
-# System files
 .DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Temp files
-tmp/
+node_modules/

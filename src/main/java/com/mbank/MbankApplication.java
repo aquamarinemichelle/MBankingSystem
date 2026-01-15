@@ -8,8 +8,12 @@ public class MbankApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MbankApplication.class, args);
-        System.out.println(" MBank Spring Boot Started!");
-        System.out.println(" http://localhost:8080");
-        System.out.println("http://localhost:8080/login");
+        System.out.println("=========================================");
+        System.out.println("   MBank Spring Boot Started!");
+        System.out.println("=========================================");
+        System.out.println("Local URL: http://localhost:8080");
+        System.out.println("Login URL: http://localhost:8080/login");
+        System.out.println("Health Check: http://localhost:8080/ping");
+        System.out.println("=========================================");
     }
 }

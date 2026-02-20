@@ -9,20 +9,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class DashboardController {
 
+
     @GetMapping("/dashboard")
     public String showDashboard(HttpSession session, Model model) {
         // Check if user is logged in
         BankAccount account = (BankAccount) session.getAttribute("account");
         if (account == null) {
+            // Not logged in → redirect to login
             return "redirect:/login";
         }
 
+
         model.addAttribute("account", account);
         return "dashboard";
-    }
-
-    @GetMapping("/")
-    public String home() {
-        return "index";
     }
 }
